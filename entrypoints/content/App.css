@@ -1,0 +1,71 @@
+.floating-clock {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 15px;
+  border-radius: 10px;
+  z-index: 9999;
+  min-width: 100px;
+  min-height: 50px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: grab;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  font-family: sans-serif;
+}
+
+.floating-clock.dragging {
+  cursor: grabbing;
+}
+
+.timer {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  font-size: 36px;
+}
+
+.digit-input {
+  width: 30px;
+  height: 45px;
+  font-size: 36px;
+  text-align: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 5px;
+  margin: 0 2px;
+  caret-color: white;
+  font-family: 'monospace';
+}
+
+.digit-input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+.separator {
+  margin: 0 5px;
+  font-size: 36px;
+}
+
+
+.controls button {
+  background-color: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin: 0 5px;
+  transition: background-color 0.2s;
+}
+
+.controls button:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
