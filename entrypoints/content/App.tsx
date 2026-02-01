@@ -5,8 +5,7 @@ import { storage } from "#imports";
 
 import { createTRPCProxyClient } from "@trpc/client";
 import { chromeLink } from "trpc-chrome/link";
-// TODO: change it later for seprate trcp file
-import type { AppRouter } from "../background";
+import type { AppRouter } from "../../src/trpc/_appTimer";
 
 const port = chrome.runtime.connect();
 // this proxy will be used for calling functions with querying or mutate
@@ -17,6 +16,8 @@ const chromeClient = createTRPCProxyClient<AppRouter>({
 function App() {
   const [time, setTime] = useState(0);
   const [isRunning, setRunning] = useState(false);
+
+  const [isVisible, setVisibility] = useState(true);
 
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -36,6 +37,7 @@ function App() {
     const fetchTime = () => {
       chromeClient.getTime.query().then(setTime);
       chromeClient.isRunning.query().then(setRunning);
+      chromeClient.isVisible.query().then(setVisibility);
     };
     fetchTime();
     const interval = setInterval(fetchTime, 1000);
@@ -149,6 +151,7 @@ function App() {
     };
   }, [isDragging]);
 
+  if (!isVisible) return <></>;
   return (
     <div
       ref={clockRef}
@@ -197,7 +200,7 @@ function App() {
         />
       </div>
       <div className="controls">
-        <button onClick={() => chromeClient.startStopTime.mutate()}>
+        <button onClick={() => chromeClient.switchTimer.mutate()}>
           {isRunning ? "Stop" : "Start"}
         </button>
         <button onClick={() => chromeClient.resetTime.mutate()}>Reset</button>
