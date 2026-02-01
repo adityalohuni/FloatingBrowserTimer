@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from "react";
-import "./ToggleSwitch.css";
-import { storage } from "#imports";
+import React from 'react';
+import './ToggleSwitch.css';
 
 const ToggleSwitch = ({ isVisible, setVisibility }) => {
   const handleToggle = () => {

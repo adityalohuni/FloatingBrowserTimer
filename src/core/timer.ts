@@ -1,40 +1,74 @@
-var defaultTime = 100;
-var currentTime = 0;
+import { storage } from 'wxt/storage';
 
-let timeInterval: any | null = null;
-let clockVisible: boolean = true;
+const ALARM_NAME = 'floating-clock-timer';
 
-export function runTimer() {
-  if (timeInterval) {
-    clearInterval(timeInterval);
-  }
-  timeInterval = setInterval(async () => {
-    if (currentTime <= 0) {
-      currentTime = defaultTime;
-    } else {
-      currentTime -= 1;
+type TimerState = {
+  isRunning: boolean;
+  currentTime: number;
+  defaultTime: number;
+  clockVisible: boolean;
+};
+
+async function getState(): Promise<TimerState> {
+  const state = await storage.getItem<TimerState>('local:timerState');
+  return (
+    state ?? {
+      isRunning: false,
+      currentTime: 100,
+      defaultTime: 100,
+      clockVisible: true,
     }
-  }, 1000);
+  );
 }
 
-export function switchTimer() {
-  if (timeInterval) {
-    clearInterval(timeInterval);
-    timeInterval = null;
-  } else runTimer();
+async function setState(newState: Partial<TimerState>) {
+  const oldState = await getState();
+  await storage.setItem('local:timerState', { ...oldState, ...newState });
+}
+
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name === ALARM_NAME) {
+    const { currentTime, defaultTime } = await getState();
+    if (currentTime <= 0) {
+      await setState({ currentTime: defaultTime });
+    } else {
+      await setState({ currentTime: currentTime - 1 });
+    }
+  }
+});
+
+export async function runTimer() {
+  const state = await getState();
+  if (!state.isRunning) {
+    chrome.alarms.create(ALARM_NAME, { periodInMinutes: 1 / 60 });
+    await setState({ isRunning: true });
+  }
+}
+
+export async function switchTimer() {
+  const state = await getState();
+  if (state.isRunning) {
+    chrome.alarms.clear(ALARM_NAME);
+    await setState({ isRunning: false });
+  } else {
+    runTimer();
+  }
 }
 
 export async function setTime(timeVal: number) {
-  await storage.setItem("local:time", timeVal);
-  currentTime = timeVal;
-  defaultTime = timeVal;
+  await setState({
+    currentTime: timeVal,
+    defaultTime: timeVal,
+  });
 }
 
-export const isRunning = () => !!timeInterval;
+export const isRunning = async () => (await getState()).isRunning;
 
-export const resetClock = () => (currentTime = defaultTime);
+export const resetClock = async () =>
+  await setState({ currentTime: (await getState()).defaultTime });
 
-export const getTime = () => currentTime;
+export const getTime = async () => (await getState()).currentTime;
 
-export const getVisibility = () => clockVisible;
-export const setVisibility = (val: boolean) => (clockVisible = val);
+export const getVisibility = async () => (await getState()).clockVisible;
+export const setVisibility = async (val: boolean) =>
+  await setState({ clockVisible: val });

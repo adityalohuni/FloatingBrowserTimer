@@ -1,11 +1,11 @@
-import "./App.css";
+import './App.css';
 
-import React, { useState, useEffect, useRef } from "react";
-import { storage } from "#imports";
+import React, { useState, useEffect, useRef } from 'react';
+import { storage } from '#imports';
 
-import { createTRPCProxyClient } from "@trpc/client";
-import { chromeLink } from "trpc-chrome/link";
-import type { AppRouter } from "../../src/trpc/_appTimer";
+import { createTRPCProxyClient } from '@trpc/client';
+import { chromeLink } from 'trpc-chrome/link';
+import type { AppRouter } from '../../src/trpc/_appTimer';
 
 const port = chrome.runtime.connect();
 // this proxy will be used for calling functions with querying or mutate
@@ -22,16 +22,20 @@ function App() {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [isEditingTime, setIsEditingTime] = useState(false);
-  const [digits, setDigits] = useState(["0", "0", "0", "0"]);
+  const [localDigits, setLocalDigits] = useState(['0', '0', '0', '0']);
 
   const dragStartPos = useRef({ x: 0, y: 0 });
   const clockRef = useRef<HTMLDivElement>(null);
-  const inputRefs = [
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-  ];
+  const inputRefs = useRef<Map<number, HTMLInputElement>>(new Map());
+
+  // Function to set individual refs
+  const setInputRef = (index: number) => (el: HTMLInputElement | null) => {
+    if (el) {
+      inputRefs.current.set(index, el);
+    } else {
+      inputRefs.current.delete(index);
+    }
+  };
 
   useEffect(() => {
     const fetchTime = () => {
@@ -44,65 +48,80 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Sync digits with time
-  useEffect(() => {
-    const minutes = Math.floor(time / 60);
-    const seconds = time % 60;
-    const newDigits = [
-      Math.floor(minutes / 10).toString(),
-      (minutes % 10).toString(),
-      Math.floor(seconds / 10).toString(),
-      (seconds % 10).toString(),
-    ];
-    setDigits(newDigits);
-  }, [time]);
+  // Derived state for displaying digits
+  const displayedDigits = useMemo(() => {
+    if (isEditingTime) {
+      return localDigits;
+    } else {
+      const minutes = Math.floor(time / 60);
+      const seconds = time % 60;
+      return [
+        Math.floor(minutes / 10).toString(),
+        (minutes % 10).toString(),
+        Math.floor(seconds / 10).toString(),
+        (seconds % 10).toString(),
+      ];
+    }
+  }, [time, isEditingTime, localDigits]);
 
   //
   // Keyboard events
   //
   //
   const handleTimeInputBlur = () => {
-    setIsEditingTime(true);
-    const newTimeStr = digits.join("");
+    setIsEditingTime(false); // Set to false when done editing
+    const newTimeStr = localDigits.join(''); // Use localDigits
     const minutes = parseInt(newTimeStr.slice(0, 2), 10);
     const seconds = parseInt(newTimeStr.slice(2, 4), 10);
     if (!isNaN(minutes) && !isNaN(seconds)) {
-      const totalSeconds = minutes * 60 + seconds;
+      const totalSeconds = minutes * 60 + seconds + 1; // Add 1 second to compensate for alarm delay
       chromeClient.changeTime.mutate({ time: totalSeconds });
     }
+    // After editing, reset localDigits to reflect the actual time, which will be updated by time state
+    // This isn't strictly necessary as displayedDigits will switch to using 'time'
+    // but ensures localDigits doesn't hold stale user input if they start editing again.
+    const minutes = Math.floor(time / 60);
+    const seconds = time % 60;
+    setLocalDigits([
+      Math.floor(minutes / 10).toString(),
+      (minutes % 10).toString(),
+      Math.floor(seconds / 10).toString(),
+      (seconds % 10).toString(),
+    ]);
   };
 
   const handleDigitChange = (
     e: React.ChangeEvent<HTMLInputElement>,
-    index: number,
+    index: number
   ) => {
     const val = e.target.value;
     if (!/^\d?$/.test(val)) return;
 
-    const newDigits = [...digits];
+    const newDigits = [...localDigits];
     newDigits[index] = val;
-    setDigits(newDigits);
+    setLocalDigits(newDigits);
 
     if (val && index < 3) {
-      inputRefs[index + 1].current?.focus();
+      inputRefs.current.get(index + 1)?.focus();
     }
   };
 
   const handleKeyDown = (
     e: React.KeyboardEvent<HTMLInputElement>,
-    index: number,
+    index: number
   ) => {
-    if (e.key === "Backspace" && !digits[index] && index > 0) {
-      inputRefs[index - 1].current?.focus();
+    if (e.key === 'Backspace' && !localDigits[index] && index > 0) {
+      // Use localDigits
+      inputRefs.current.get(index - 1)?.focus();
     }
   };
 
   const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
-    const pastedData = e.clipboardData.getData("text").replace(/[^0-9]/g, "");
+    const pastedData = e.clipboardData.getData('text').replace(/[^0-9]/g, '');
     if (pastedData.length === 4) {
-      setDigits(pastedData.split(""));
-      inputRefs[3].current?.focus();
+      setLocalDigits(pastedData.split('')); // Use setLocalDigits
+      inputRefs.current.get(3)?.focus();
     }
   };
 
@@ -111,8 +130,8 @@ function App() {
   //
   const handleMouseDown = (e: React.MouseEvent) => {
     if (
-      (e.target as HTMLElement).tagName === "BUTTON" ||
-      (e.target as HTMLElement).tagName === "INPUT"
+      (e.target as HTMLElement).tagName === 'BUTTON' ||
+      (e.target as HTMLElement).tagName === 'INPUT'
     ) {
       return;
     }
@@ -123,39 +142,42 @@ function App() {
     };
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
-    if (isDragging) {
-      const newPosition = {
-        x: e.clientX - dragStartPos.current.x,
-        y: e.clientY - dragStartPos.current.y,
-      };
-      setPosition(newPosition);
-      storage.setItem("local:position", newPosition);
-    }
-  };
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (isDragging) {
+        const newPosition = {
+          x: e.clientX - dragStartPos.current.x,
+          y: e.clientY - position.y,
+        };
+        setPosition(newPosition);
+        storage.setItem('local:position', newPosition);
+      }
+    },
+    [isDragging, position]
+  );
 
-  const handleMouseUp = () => setIsDragging(false);
+  const handleMouseUp = useCallback(() => setIsDragging(false), []);
 
   useEffect(() => {
     if (isDragging) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
     } else {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
     }
 
     return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging]);
+  }, [isDragging, handleMouseMove, handleMouseUp]);
 
   if (!isVisible) return <></>;
   return (
     <div
       ref={clockRef}
-      className={`floating-clock ${isDragging ? "dragging" : ""}`}
+      className={`floating-clock ${isDragging ? 'dragging' : ''}`}
       style={{ left: position.x, top: position.y }}
       onMouseDown={handleMouseDown}
     >
@@ -165,35 +187,35 @@ function App() {
         onBlur={handleTimeInputBlur}
       >
         <input
-          ref={inputRefs[0]}
+          ref={setInputRef(0)}
           className="digit-input"
-          value={digits[0]}
+          value={displayedDigits[0]}
           onChange={(e) => handleDigitChange(e, 0)}
           onKeyDown={(e) => handleKeyDown(e, 0)}
           onPaste={handlePaste}
           maxLength={1}
         />
         <input
-          ref={inputRefs[1]}
+          ref={setInputRef(1)}
           className="digit-input"
-          value={digits[1]}
+          value={displayedDigits[1]}
           onChange={(e) => handleDigitChange(e, 1)}
           onKeyDown={(e) => handleKeyDown(e, 1)}
           maxLength={1}
         />
         <span className="separator">:</span>
         <input
-          ref={inputRefs[2]}
+          ref={setInputRef(2)}
           className="digit-input"
-          value={digits[2]}
+          value={displayedDigits[2]}
           onChange={(e) => handleDigitChange(e, 2)}
           onKeyDown={(e) => handleKeyDown(e, 2)}
           maxLength={1}
         />
         <input
-          ref={inputRefs[3]}
+          ref={setInputRef(3)}
           className="digit-input"
-          value={digits[3]}
+          value={displayedDigits[3]}
           onChange={(e) => handleDigitChange(e, 3)}
           onKeyDown={(e) => handleKeyDown(e, 3)}
           maxLength={1}
@@ -201,7 +223,7 @@ function App() {
       </div>
       <div className="controls">
         <button onClick={() => chromeClient.switchTimer.mutate()}>
-          {isRunning ? "Stop" : "Start"}
+          {isRunning ? 'Stop' : 'Start'}
         </button>
         <button onClick={() => chromeClient.resetTime.mutate()}>Reset</button>
       </div>

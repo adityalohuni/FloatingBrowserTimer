@@ -25,9 +25,10 @@ Instead of being tied to a single tab, the clock's state is synchronized globall
 - **Global State**: The timer's state is persistent and synchronized across all your tabs.
 
 ## Demo
+
 ## TODO: Add the ss here
 
-*(A screenshot or GIF of the clock in action would go here)*
+_(A screenshot or GIF of the clock in action would go here)_
 
 ![Floating Clock Demo](https://i.imgur.com/someRandomGifInPlace.gif)
 
@@ -43,12 +44,14 @@ Follow these instructions to build and run the extension locally.
 ### Installation and Building
 
 1.  **Clone the repository:**
+
     ```bash
     git clone <your-repository-url>
     cd <repository-folder>
     ```
 
 2.  **Install dependencies:**
+
     ```bash
     pnpm install
     ```

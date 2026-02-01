@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from 'zod';
 
 import {
   getTime,
@@ -8,24 +8,26 @@ import {
   setTime,
   setVisibility,
   switchTimer,
-} from "../core/timer";
-import { t, router, procedure } from "./trpc";
+} from '../core/timer';
+import { procedure, router } from './trpc';
 
-export const timerRouter = t.router({
-  switchTimer: procedure.mutation(switchTimer),
-  isRunning: procedure.query(isRunning),
+export const timerRouter = router({
+  switchTimer: procedure.mutation(async () => await switchTimer()),
+  isRunning: procedure.query(async () => await isRunning()),
   changeTime: procedure
     .input(z.object({ time: z.number() }))
-    .mutation(({ input }) => {
-      setTime(input.time);
+    .mutation(async ({ input }) => {
+      await setTime(input.time);
     }),
-  resetTime: procedure.mutation(resetClock),
-  getTime: procedure.query(getTime),
+  resetTime: procedure.mutation(async () => await resetClock()),
+  getTime: procedure.query(async () => await getTime()),
 
-  isVisible: procedure.query(getVisibility),
+  isVisible: procedure.query(async () => await getVisibility()),
   setVisibility: procedure
     .input(z.object({ isVisible: z.boolean() }))
-    .mutation(({ input }) => setVisibility(input.isVisible as boolean)),
+    .mutation(
+      async ({ input }) => await setVisibility(input.isVisible as boolean)
+    ),
 });
 
 export type AppRouter = typeof timerRouter;

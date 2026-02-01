@@ -1,10 +1,10 @@
-import React, { useRef, useState } from "react";
-import "./App.css";
-import ToggleSwitch from "./components/ToggleSwitch";
+import React, { useState } from 'react';
+import './App.css';
+import ToggleSwitch from './components/ToggleSwitch';
 
-import { createTRPCProxyClient } from "@trpc/client";
-import { chromeLink } from "trpc-chrome/link";
-import type { AppRouter } from "../../src/trpc/_appTimer.ts";
+import { createTRPCProxyClient } from '@trpc/client';
+import { chromeLink } from 'trpc-chrome/link';
+import type { AppRouter } from '../../src/trpc/_appTimer.ts';
 
 const port = chrome.runtime.connect();
 // this proxy will be used for calling functions with querying or mutate
@@ -17,7 +17,7 @@ const App = () => {
   useEffect(() => {
     const visiblityInterval = setInterval(
       () => chromeClient.isVisible.query().then(setVisibility),
-      1000,
+      1000
     );
     return () => clearInterval(visiblityInterval);
   });
