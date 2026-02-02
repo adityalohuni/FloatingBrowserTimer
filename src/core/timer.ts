@@ -1,4 +1,4 @@
-import { storage } from 'wxt/storage';
+import { storage } from '#imports';
 
 const ALARM_NAME = 'floating-clock-timer';
 
