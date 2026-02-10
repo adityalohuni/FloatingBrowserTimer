@@ -28,6 +28,7 @@ function App() {
   const [localTime, setLocalTime] = useState(['0', '0', '0', '0']);
 
   const dragStartPos = useRef({ x: 0, y: 0 });
+  const positionRef = useRef(position);
   const clockRef = useRef<HTMLDivElement>(null);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([
     null,
@@ -77,6 +78,18 @@ function App() {
     return Math.min(minutes * 60 + seconds, 5999); // Max 99:59
   }, []);
 
+  const clampPosition = useCallback((pos: { x: number; y: number }) => {
+    const rect = clockRef.current?.getBoundingClientRect();
+    const width = rect?.width ?? 0;
+    const height = rect?.height ?? 0;
+    const maxX = Math.max(0, window.innerWidth - width);
+    const maxY = Math.max(0, window.innerHeight - height);
+    return {
+      x: Math.min(Math.max(pos.x, 0), maxX),
+      y: Math.min(Math.max(pos.y, 0), maxY),
+    };
+  }, []);
+
   const displayedDigits = useMemo(() => {
     if (isEditingTime) {
       return localTime;
@@ -89,6 +102,18 @@ function App() {
       setLocalTime(timeToDigits(time));
     }
   }, [time, isEditingTime, timeToDigits]);
+
+  useEffect(() => {
+    positionRef.current = position;
+  }, [position]);
+
+  useEffect(() => {
+    if (!clockRef.current) return;
+    const clamped = clampPosition(position);
+    if (clamped.x !== position.x || clamped.y !== position.y) {
+      setPosition(clamped);
+    }
+  }, [position, clampPosition]);
 
   const handleDigitChange = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -175,54 +200,83 @@ function App() {
     };
   }, []);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handlePointerDown = (e: React.PointerEvent) => {
     if (
       (e.target as HTMLElement).tagName === 'BUTTON' ||
       (e.target as HTMLElement).tagName === 'INPUT'
     ) {
       return;
     }
+    if (e.pointerType === 'mouse' && e.button !== 0) {
+      return;
+    }
+    e.preventDefault();
     setIsDragging(true);
     dragStartPos.current = {
       x: e.clientX - position.x,
       y: e.clientY - position.y,
     };
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
   };
 
-  const handleMouseMove = useCallback(
-    (e: MouseEvent) => {
-      if (isDragging) {
-        const newPosition = {
-          x: e.clientX - dragStartPos.current.x,
-          y: e.clientY - dragStartPos.current.y,
-        };
-        setPosition(newPosition);
-      }
+  const handlePointerMove = useCallback(
+    (e: PointerEvent) => {
+      if (!isDragging) return;
+      const newPosition = clampPosition({
+        x: e.clientX - dragStartPos.current.x,
+        y: e.clientY - dragStartPos.current.y,
+      });
+      setPosition(newPosition);
     },
-    [isDragging]
+    [isDragging, clampPosition]
   );
 
-  const handleMouseUp = useCallback(() => {
-    if (isDragging) {
+  const handlePointerUp = useCallback(
+    (e: PointerEvent) => {
+      if (!isDragging) return;
       setIsDragging(false);
-      storage.setItem('local:position', position);
-    }
-  }, [isDragging, position]);
+      const clamped = clampPosition(positionRef.current);
+      setPosition(clamped);
+      storage.setItem('local:position', clamped);
+      clockRef.current?.releasePointerCapture?.(e.pointerId);
+    },
+    [isDragging, clampPosition]
+  );
 
   useEffect(() => {
     if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('pointermove', handlePointerMove);
+      document.addEventListener('pointerup', handlePointerUp);
+      document.addEventListener('pointercancel', handlePointerUp);
     } else {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('pointerup', handlePointerUp);
+      document.removeEventListener('pointercancel', handlePointerUp);
     }
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('pointerup', handlePointerUp);
+      document.removeEventListener('pointercancel', handlePointerUp);
     };
-  }, [isDragging, handleMouseMove, handleMouseUp]);
+  }, [isDragging, handlePointerMove, handlePointerUp]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setPosition((prev) => {
+        const clamped = clampPosition(prev);
+        if (clamped.x === prev.x && clamped.y === prev.y) {
+          return prev;
+        }
+        storage.setItem('local:position', clamped);
+        return clamped;
+      });
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [clampPosition]);
 
   const handleToggleTimer = useCallback(() => {
     chromeClient.switchTimer.mutate();
@@ -239,7 +293,7 @@ function App() {
       ref={clockRef}
       className={`floating-clock ${isDragging ? 'dragging' : ''}`}
       style={{ left: position.x, top: position.y }}
-      onMouseDown={handleMouseDown}
+      onPointerDown={handlePointerDown}
     >
       <div className="timer">
         {displayedDigits.map((digit, index) => (

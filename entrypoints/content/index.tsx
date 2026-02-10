@@ -4,8 +4,10 @@ import App from './App';
 
 export default defineContentScript({
   matches: ['<all_urls>'],
-  main(ctx) {
-    const ui = createIntegratedUi(ctx, {
+  cssInjectionMode: 'ui',
+  async main(ctx) {
+    const ui = await createShadowRootUi(ctx, {
+      name: 'floating-clock',
       position: 'inline',
       anchor: 'body',
       onMount(container) {
@@ -15,9 +17,9 @@ export default defineContentScript({
         const root = createRoot(div);
         root.render(<App />);
       },
-      onRemove: (root) => {
-        root?.unmount();
-      },
+      // onRemove: (root) => {
+      //   root?.unmount();
+      // },
     });
     ui.mount();
   },
