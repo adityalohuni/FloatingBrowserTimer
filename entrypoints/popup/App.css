@@ -1,15 +1,59 @@
 .app {
-  padding: 20px;
-  text-align: center;
+  padding: 18px;
+  min-height: 100%;
 }
 
-.app-header h1 {
-  font-size: 1.5rem;
-  margin-bottom: 8px;
+.popup-surface {
+  background: linear-gradient(160deg, #f9fafb 0%, #f1f5f9 60%, #eef2ff 100%);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow:
+    0 12px 25px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
-.app-header p {
-  margin-bottom: 24px;
-  font-size: 0.9rem;
-  opacity: 0.8;
+.section {
+  padding: 6px 2px 2px;
+}
+
+.section-title {
+  letter-spacing: 0.01em;
+}
+
+.hint {
+  opacity: 0.68;
+}
+
+.time-row {
+  align-items: center;
+}
+
+.time-input {
+  width: 52px;
+}
+
+.set-button {
+  min-width: 64px;
+}
+
+.site-pill {
+  display: inline-flex;
+  max-width: 190px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.switch-row {
+  align-items: center;
+  padding: 8px 6px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.035);
+}
 }

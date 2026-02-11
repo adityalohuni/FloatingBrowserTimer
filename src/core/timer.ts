@@ -6,19 +6,31 @@ type TimerState = {
   isRunning: boolean;
   currentTime: number;
   defaultTime: number;
-  clockVisible: boolean;
+  clockVisibleByScope: Record<string, boolean>;
+  isSuspended: boolean;
+};
+
+type VisibilityScope = {
+  site?: string;
 };
 
 async function getState(): Promise<TimerState> {
   const state = await storage.getItem<TimerState>('local:timerState');
-  return (
-    state ?? {
+  if (!state) {
+    return {
       isRunning: false,
       currentTime: 100,
       defaultTime: 100,
-      clockVisible: true,
-    }
-  );
+      clockVisibleByScope: {},
+      isSuspended: false,
+    };
+  }
+
+  return {
+    ...state,
+    clockVisibleByScope: state.clockVisibleByScope ?? {},
+    isSuspended: state.isSuspended ?? false,
+  };
 }
 
 async function setState(newState: Partial<TimerState>) {
@@ -39,6 +51,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 
 export async function runTimer() {
   const state = await getState();
+  if (state.isSuspended) return;
   if (!state.isRunning) {
     chrome.alarms.create(ALARM_NAME, { periodInMinutes: 1 / 60 });
     await setState({ isRunning: true });
@@ -47,6 +60,7 @@ export async function runTimer() {
 
 export async function switchTimer() {
   const state = await getState();
+  if (state.isSuspended) return;
   if (state.isRunning) {
     chrome.alarms.clear(ALARM_NAME);
     await setState({ isRunning: false });
@@ -69,6 +83,38 @@ export const resetClock = async () =>
 
 export const getTime = async () => (await getState()).currentTime;
 
-export const getVisibility = async () => (await getState()).clockVisible;
-export const setVisibility = async (val: boolean) =>
-  await setState({ clockVisible: val });
+const toSiteScope = (site: string) => `site:${site.toLowerCase()}`;
+
+export const getVisibility = async (scope?: VisibilityScope) => {
+  const state = await getState();
+
+  if (scope?.site) {
+    const siteVisible = state.clockVisibleByScope[toSiteScope(scope.site)];
+    if (siteVisible !== undefined) return siteVisible;
+  }
+
+  return true;
+};
+
+export const setVisibility = async (val: boolean, scope?: VisibilityScope) => {
+  const state = await getState();
+  const nextVisibilityByScope = { ...state.clockVisibleByScope };
+
+  if (scope?.site) {
+    nextVisibilityByScope[toSiteScope(scope.site)] = val;
+  }
+
+  await setState({ clockVisibleByScope: nextVisibilityByScope });
+};
+
+export const isSuspended = async () => (await getState()).isSuspended;
+
+export const setSuspended = async (val: boolean) => {
+  if (val) {
+    chrome.alarms.clear(ALARM_NAME);
+    await setState({ isSuspended: true, isRunning: false });
+    return;
+  }
+
+  await setState({ isSuspended: false });
+};

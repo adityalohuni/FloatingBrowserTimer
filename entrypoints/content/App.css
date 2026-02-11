@@ -2,22 +2,23 @@
   position: fixed;
   top: 20px;
   left: 20px;
-  background-color: rgba(0, 0, 0, 0.8);
-  color: white;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.18),
+    rgba(255, 255, 255, 0.06)
+  );
+  color: #f7f7f7;
   padding: 15px;
   border-radius: 10px;
-  z-index: 9999;
+  z-index: 2147483647;
   min-width: 100px;
   min-height: 50px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   cursor: grab;
   touch-action: none;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  font-family: sans-serif;
+  backdrop-filter: blur(18px) saturate(120%);
+  -webkit-backdrop-filter: blur(18px) saturate(120%);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
 }
 
 .floating-clock.dragging {
@@ -37,9 +38,9 @@
   height: 45px;
   font-size: 36px;
   text-align: center;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.35);
   color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.35);
   border-radius: 5px;
   margin: 0 2px;
   caret-color: white;
@@ -56,17 +57,7 @@
   font-size: 36px;
 }
 
-.controls button {
-  background-color: rgba(255, 255, 255, 0.2);
-  border: none;
-  color: white;
-  padding: 8px 12px;
-  border-radius: 5px;
-  cursor: pointer;
-  margin: 0 5px;
-  transition: background-color 0.2s;
-}
-
-.controls button:hover {
-  background-color: rgba(255, 255, 255, 0.3);
+.controls {
+  display: flex;
+  gap: 8px;
 }

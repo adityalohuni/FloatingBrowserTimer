@@ -12,6 +12,8 @@ export default defineContentScript({
       anchor: 'body',
       onMount(container) {
         const div = document.createElement('div');
+        container.style.position = 'fixed';
+        container.style.zIndex = '2147483647';
         container.append(div);
 
         const root = createRoot(div);
