@@ -171,6 +171,10 @@ const App = () => {
                   </Text>
                 </Box>
                 <Switch
+                  className="switch-control"
+                  size="3"
+                  color="blue"
+                  highContrast
                   checked={isVisible}
                   onCheckedChange={handleToggle}
                   disabled={isSuspended}
@@ -187,6 +191,10 @@ const App = () => {
                   </Text>
                 </Box>
                 <Switch
+                  className="switch-control"
+                  size="3"
+                  color="blue"
+                  highContrast
                   checked={isSuspended}
                   onCheckedChange={handleSuspendToggle}
                 />

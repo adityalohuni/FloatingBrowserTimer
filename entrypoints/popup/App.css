@@ -56,4 +56,7 @@
   border-radius: 12px;
   background: rgba(15, 23, 42, 0.035);
 }
+
+.switch-control {
+  filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.2));
 }

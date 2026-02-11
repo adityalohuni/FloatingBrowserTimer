@@ -20,6 +20,17 @@ const chromeClient = createTRPCProxyClient<AppRouter>({
   links: [chromeLink({ port })],
 });
 
+const isPosition = (value: unknown): value is { x: number; y: number } => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const maybePosition = value as { x?: unknown; y?: unknown };
+  return (
+    typeof maybePosition.x === 'number' && typeof maybePosition.y === 'number'
+  );
+};
+
 function App() {
   const [time, setTime] = useState(0);
   const [isRunning, setRunning] = useState(false);
@@ -51,7 +62,7 @@ function App() {
   useEffect(() => {
     const loadPosition = async () => {
       const savedPosition = await storage.getItem('local:position');
-      if (savedPosition) {
+      if (isPosition(savedPosition)) {
         setPosition(savedPosition);
       }
     };
